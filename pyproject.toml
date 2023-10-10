@@ -4,13 +4,14 @@ version = "0.1.0"
 description = ""
 authors = ["Ilia Kaziamov <kaziamov@outlook.com>"]
 readme = "README.md"
-packages = [{include = "tg-cleaner"}]
+#packages = [{include = "tg_cleaner"}]
 
 [tool.poetry.dependencies]
-python = "^3.11"
-fastapi = "^0.103.2"
-aiogram = "^3.1.1"
-python-dotenv = "^1.0.0"
+python = "3.10.6"
+fastapi = "0.103.1"
+python-dotenv = "1.0.0"
+uvicorn = "0.23.2"
+aiogram = "3.0.0"
 
 
 [build-system]

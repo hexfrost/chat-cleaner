@@ -9,7 +9,8 @@ load_dotenv()
 # Required
 BOT_TOKEN=os.getenv("BOT_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+CHATS_TO_CLEAN= os.getenv("CHATS_TO_CLEAN").split(" ")
 
 # Optional
-RANDON_WEBHOOK_PATH = "webhook:" + "".join(random.choices(list(ascii_letters + digits), k=32))
+RANDON_WEBHOOK_PATH = "".join(random.choices(list(ascii_letters + digits), k=32))
 WEBHOOK_PATH = os.getenv("WEBHOOK_PATH", RANDON_WEBHOOK_PATH)
