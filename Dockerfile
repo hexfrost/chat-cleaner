@@ -1,4 +1,4 @@
-FROM python:3.10.6-alpine
+FROM python:3.10.6
 
 WORKDIR /app
 
@@ -10,6 +10,6 @@ RUN poetry config virtualenvs.create false
 RUN poetry install
 
 
-CMD ["uvicorn", "tg_cleaner:app", "--workers", "3", "--host", "0.0.0.0", "--port", "80"]
+CMD ["uvicorn", "tg_cleaner:app", "--workers", "1", "--host", "0.0.0.0", "--port", "80"]
 
 EXPOSE 80
