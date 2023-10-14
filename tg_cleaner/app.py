@@ -33,6 +33,11 @@ async def telegram_webhook(request: dict):
     await dp.feed_update(bot=bot, update=update)
 
 
+@app.get("/")
+async def root():
+    return {"status": "ok"}
+
+
 async def register_webhook():
     await bot.set_webhook(url=TELEGRAM_WEBHOOK_URL)
     logger.info(f"""Webhook registered {TELEGRAM_WEBHOOK_URL}""")
