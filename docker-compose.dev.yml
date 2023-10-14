@@ -1,0 +1,16 @@
+version: '3.3'
+
+services:
+  app:
+    image: python:3.10.6
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    restart: always
+    env_file:
+      - .env.docker
+    command: uvicorn tg_cleaner:app --workers 1 --host ${APP_HOST} --port ${APP_PORT} --reload --reload-dir . --log-config=log_config.ini
+    volumes:
+      - .:/app
+    ports:
+      - ${APP_PORT}:${APP_PORT}

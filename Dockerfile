@@ -1,0 +1,15 @@
+FROM python:3.10.6-alpine
+
+WORKDIR /app
+
+COPY ./pyproject.toml ./poetry.lock /app/
+
+RUN python -m pip install --upgrade pip
+RUN pip install poetry
+RUN poetry config virtualenvs.create false
+RUN poetry install
+
+
+CMD ["uvicorn", "tg_cleaner:app", "--workers", "3", "--host", "0.0.0.0", "--port", "80"]
+
+EXPOSE 80
