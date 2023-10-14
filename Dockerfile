@@ -10,6 +10,6 @@ RUN poetry config virtualenvs.create false
 RUN poetry install
 
 
-CMD ["uvicorn", "tg_cleaner:app", "--workers", "1", "--host", "0.0.0.0", "--port", "80"]
+CMD ["uvicorn", "tg_cleaner:app", "--workers", "1", "--host", "0.0.0.0", "--port", "8000"]
 
-EXPOSE 80
+EXPOSE 8000
