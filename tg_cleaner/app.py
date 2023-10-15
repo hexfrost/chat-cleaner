@@ -46,6 +46,7 @@ async def register_webhook():
 
 
 def delete_messages_filter(message: types.Message):
+    logger.debug(f"delete_messages_filter: {message}")
     if message.chat.type == "private":
         logger.debug("delete_messages_filter: Private chat")
         return False
@@ -65,9 +66,9 @@ def delete_messages_filter(message: types.Message):
 
 @messages_bot_router.message()
 async def delete_messages_handler(message: types.Message):
-    if message.chat.id not in settings.CHATS_TO_CLEAN:
-        logger.debug(f"From {message.chat.id} not allowed chat {settings.CHATS_TO_CLEAN}")
-        return
+    # if message.chat.id not in settings.CHATS_TO_CLEAN:
+    #     logger.debug(f"From {message.chat.id} not allowed chat {settings.CHATS_TO_CLEAN}")
+    #     return
     if not delete_messages_filter(message):
         logger.debug("Message delete function skipped")
         return
