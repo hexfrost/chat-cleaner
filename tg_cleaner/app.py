@@ -45,38 +45,43 @@ async def register_webhook():
     logger.info(f"""Webhook info: {webhook_info}""")
 
 
-def delete_messages_filter(message: types.Message):
-    logger.debug(f"delete_messages_filter: {message}")
-    if message.chat.type == "private":
-        logger.debug("delete_messages_filter: Private chat")
-        return False
-    if hasattr(message, "new_chat_participant"):
-        if message.new_chat_participant:
-            logger.debug("delete_messages_filter: New chat participant")
-            return True
-    if hasattr(message, "left_chat_participant"):
-        if message.left_chat_participant:
-            logger.debug("delete_messages_filter: Left chat participant")
-            return True
-    if hasattr(message, "pinned_message"):
-        if message.pinned_message:
-            logger.debug("delete_messages_filter: Pinned message")
-            return True
-    return False
+# def delete_messages_filter(message: types.Message):
+    # logger.debug(f"delete_messages_filter: {message}")
+    # if message.chat.type == "private":
+    #     logger.debug("delete_messages_filter: Private chat")
+    #     return False
+    # return False
 
 @messages_bot_router.message()
 async def delete_messages_handler(message: types.Message):
     # if message.chat.id not in settings.CHATS_TO_CLEAN:
     #     logger.debug(f"From {message.chat.id} not allowed chat {settings.CHATS_TO_CLEAN}")
     #     return
-    if not delete_messages_filter(message):
-        logger.debug("Message delete function skipped")
-        return
-    try:
-        await bot(DeleteMessage(chat_id=message.chat, message_id=message.message_id))
-        logger.debug("Message DELETED")
-    except:
-        return
+    to_delete = False
+    if hasattr(message, "new_chat_participant"):
+        if message.new_chat_participant:
+            logger.debug("delete_messages_filter: New chat participant")
+            to_delete = True
+    if hasattr(message, "left_chat_participant"):
+        if message.left_chat_participant:
+            logger.debug("delete_messages_filter: Left chat participant")
+            to_delete = True
+    if hasattr(message, "pinned_message"):
+        if message.pinned_message:
+            logger.debug("delete_messages_filter: Pinned message")
+            to_delete = True
+    # if not delete_messages_filter(message):
+    #     return
+    logger.debug(f"delete_messages_handler: Message to delete: {to_delete}")
+    if to_delete == True:
+        try:
+            await bot(DeleteMessage(chat_id=message.chat.id, message_id=message.message_id))
+        except Exception as e:
+            logger.error(f"delete_messages_handler: Error deleting message: {e}")
+        finally:
+            logger.debug("delete_messages_handler: Message DELETED")
+            return
+    logger.debug("Message delete function skipped")
 
 
 @app.on_event("startup")
