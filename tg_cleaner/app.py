@@ -2,6 +2,7 @@ import logging
 
 from aiogram import Bot, Dispatcher, Router, types
 from aiogram.methods import DeleteMessage
+from aiogram.filters import Filter, or_f
 
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,14 +23,15 @@ app.add_middleware(
 bot = Bot(token=settings.BOT_TOKEN, parse_mode="HTML")
 dp = Dispatcher()
 messages_bot_router = Router()
+
 TELEGRAM_WEBHOOK_URL = f"{settings.WEBHOOK_URL}/webhook"
 
 logger = logging.getLogger(__name__)
 
-
 @app.post("/webhook")
 async def telegram_webhook(request: dict):
     update = types.Update(**request)
+    logger.debug(f"telegram_webhook: Got update: {update}")
     await dp.feed_update(bot=bot, update=update)
 
 
@@ -45,43 +47,42 @@ async def register_webhook():
     logger.info(f"""Webhook info: {webhook_info}""")
 
 
-# def delete_messages_filter(message: types.Message):
-    # logger.debug(f"delete_messages_filter: {message}")
-    # if message.chat.type == "private":
-    #     logger.debug("delete_messages_filter: Private chat")
-    #     return False
-    # return False
+class JoinUserFilter(Filter):
+    async def __call__(self, message: types.Message) -> bool:
+        if hasattr(message, "new_chat_participant"):
+            if message.new_chat_participant:
+                logger.debug(f"JoinUserFilter: filter passed for message: {message}")
+                return True
 
-@messages_bot_router.message()
-async def delete_messages_handler(message: types.Message):
-    # if message.chat.id not in settings.CHATS_TO_CLEAN:
-    #     logger.debug(f"From {message.chat.id} not allowed chat {settings.CHATS_TO_CLEAN}")
-    #     return
-    to_delete = False
-    if hasattr(message, "new_chat_participant"):
-        if message.new_chat_participant:
-            logger.debug("delete_messages_filter: New chat participant")
-            to_delete = True
-    if hasattr(message, "left_chat_participant"):
-        if message.left_chat_participant:
-            logger.debug("delete_messages_filter: Left chat participant")
-            to_delete = True
-    if hasattr(message, "pinned_message"):
+class LeftUserFilter(Filter):
+    async def __call__(self, message: types.Message) -> bool:
+        if hasattr(message, "left_chat_participant"):
+            if message.left_chat_participant:
+                logger.debug(f"LeftUserFilter: filter passed for message: {message}")
+                return True
+
+
+class PinnedMessageFilter(Filter):
+    async def __call__(self, message: types.Message) -> bool:
         if message.pinned_message:
-            logger.debug("delete_messages_filter: Pinned message")
-            to_delete = True
-    # if not delete_messages_filter(message):
-    #     return
-    logger.debug(f"delete_messages_handler: Message to delete: {to_delete}")
-    if to_delete == True:
-        try:
-            await bot(DeleteMessage(chat_id=message.chat.id, message_id=message.message_id))
-        except Exception as e:
-            logger.error(f"delete_messages_handler: Error deleting message: {e}")
-        finally:
-            logger.debug("delete_messages_handler: Message DELETED")
-            return
-    logger.debug("Message delete function skipped")
+            logger.debug(f"PinnedMessageFilter: filter passed for message: {message}")
+            return True
+
+
+TO_DELETE_FILTERS = (JoinUserFilter(), LeftUserFilter(), PinnedMessageFilter())
+
+
+@messages_bot_router.message(or_f(*TO_DELETE_FILTERS))
+async def delete_messages_handler(message: types.Message):
+    try:
+        await bot(DeleteMessage(
+            chat_id=message.chat.id,
+            message_id=message.message_id)
+        )
+    except Exception as e:
+        logger.error(f"delete_messages_handler: Error deleting message: {e}")
+    finally:
+        logger.debug(f"delete_messages_handler: DELETED message {message}")
 
 
 @app.on_event("startup")
