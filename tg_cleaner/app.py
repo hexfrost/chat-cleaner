@@ -1,24 +1,19 @@
+import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher, Router, types
-from aiogram.methods import DeleteMessage
+from aiogram.exceptions import TelegramUnauthorizedError
 from aiogram.filters import Filter, or_f
-
+from aiogram.methods import DeleteMessage
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import settings
 
-
 app = FastAPI()
 webhook_api_router = APIRouter()
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"], )
 
 bot = Bot(token=settings.BOT_TOKEN, parse_mode="HTML")
 dp = Dispatcher()
@@ -27,6 +22,7 @@ messages_bot_router = Router()
 TELEGRAM_WEBHOOK_URL = f"{settings.WEBHOOK_URL}/webhook"
 
 logger = logging.getLogger(__name__)
+
 
 @app.post("/webhook")
 async def telegram_webhook(request: dict):
@@ -40,6 +36,23 @@ async def root():
     return {"status": "ok"}
 
 
+def retry_on_error(func):
+    async def inner(*args, **kwargs):
+        logger.debug(f"Calling {func.__name__} with args: {args} and kwargs: {kwargs}")
+        is_success = False
+        while not is_success:
+            try:
+                result = await func(*args, **kwargs)
+                is_success = True
+                return result
+            except TelegramUnauthorizedError as e:
+                logger.error(f"Error: {e}. Wait for retry")
+                await asyncio.sleep(60)
+
+    return inner
+
+
+@retry_on_error
 async def register_webhook():
     await bot.set_webhook(url=TELEGRAM_WEBHOOK_URL)
     logger.info(f"""Webhook registered {TELEGRAM_WEBHOOK_URL}""")
@@ -53,6 +66,7 @@ class JoinUserFilter(Filter):
             if message.new_chat_participant:
                 logger.debug(f"JoinUserFilter: filter passed for message: {message}")
                 return True
+
 
 class LeftUserFilter(Filter):
     async def __call__(self, message: types.Message) -> bool:
@@ -75,10 +89,9 @@ TO_DELETE_FILTERS = (JoinUserFilter(), LeftUserFilter(), PinnedMessageFilter())
 @messages_bot_router.message(or_f(*TO_DELETE_FILTERS))
 async def delete_messages_handler(message: types.Message):
     try:
-        await bot(DeleteMessage(
-            chat_id=message.chat.id,
-            message_id=message.message_id)
-        )
+        await bot(
+            DeleteMessage(
+                chat_id=message.chat.id, message_id=message.message_id))
     except Exception as e:
         logger.error(f"delete_messages_handler: Error deleting message: {e}")
     finally:
