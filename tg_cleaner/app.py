@@ -1,7 +1,8 @@
+import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher, Router, types
-from aiogram.methods import DeleteMessage
+from aiogram.exceptions import TelegramUnauthorizedError
 from aiogram.filters import Filter, or_f
 
 from fastapi import FastAPI, APIRouter
@@ -40,6 +41,23 @@ async def root():
     return {"status": "ok"}
 
 
+def retry_on_error(func):
+    async def inner(*args, **kwargs):
+        logger.debug(f"Calling {func.__name__} with args: {args} and kwargs: {kwargs}")
+        is_success = False
+        while not is_success:
+            try:
+                result = await func(*args, **kwargs)
+                is_success = True
+                return result
+            except TelegramUnauthorizedError as e:
+                logger.error(f"Error: {e}. Wait for retry")
+                await asyncio.sleep(60)
+
+    return inner
+
+
+@retry_on_error
 async def register_webhook():
     await bot.set_webhook(url=TELEGRAM_WEBHOOK_URL)
     logger.info(f"""Webhook registered {TELEGRAM_WEBHOOK_URL}""")
