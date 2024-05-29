@@ -4,22 +4,16 @@ import logging
 from aiogram import Bot, Dispatcher, Router, types
 from aiogram.exceptions import TelegramUnauthorizedError
 from aiogram.filters import Filter, or_f
-
+from aiogram.methods import DeleteMessage
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import settings
 
-
 app = FastAPI()
 webhook_api_router = APIRouter()
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"], )
 
 bot = Bot(token=settings.BOT_TOKEN, parse_mode="HTML")
 dp = Dispatcher()
@@ -28,6 +22,7 @@ messages_bot_router = Router()
 TELEGRAM_WEBHOOK_URL = f"{settings.WEBHOOK_URL}/webhook"
 
 logger = logging.getLogger(__name__)
+
 
 @app.post("/webhook")
 async def telegram_webhook(request: dict):
@@ -72,6 +67,7 @@ class JoinUserFilter(Filter):
                 logger.debug(f"JoinUserFilter: filter passed for message: {message}")
                 return True
 
+
 class LeftUserFilter(Filter):
     async def __call__(self, message: types.Message) -> bool:
         if hasattr(message, "left_chat_participant"):
@@ -93,10 +89,9 @@ TO_DELETE_FILTERS = (JoinUserFilter(), LeftUserFilter(), PinnedMessageFilter())
 @messages_bot_router.message(or_f(*TO_DELETE_FILTERS))
 async def delete_messages_handler(message: types.Message):
     try:
-        await bot(DeleteMessage(
-            chat_id=message.chat.id,
-            message_id=message.message_id)
-        )
+        await bot(
+            DeleteMessage(
+                chat_id=message.chat.id, message_id=message.message_id))
     except Exception as e:
         logger.error(f"delete_messages_handler: Error deleting message: {e}")
     finally:
