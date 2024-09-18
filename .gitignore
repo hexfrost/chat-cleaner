@@ -1,7 +1,7 @@
 .vscode/
 .idea/
 
-.env.docker
+.env.example
 .env
 
 # Byte-compiled / optimized / DLL files
